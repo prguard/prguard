@@ -32,7 +32,7 @@ func initDatabase(cfg *config.Config) (*database.DB, error) {
 }
 
 // initClients initializes the GitHub client and blocklist manager
-func initClients(configPath string) (*config.Config, *github.Client, *blocklist.Manager, *database.DB, error) {
+func initClients(configPath string) (*config.Config, github.GitHubClient, blocklist.BlocklistManager, *database.DB, error) {
 	cfg, err := loadConfig(configPath)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("failed to load config: %w", err)

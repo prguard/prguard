@@ -157,7 +157,7 @@ type ScanResults struct {
 }
 
 // ScanRepository scans all open PRs in a repository
-func (s *Scanner) ScanRepository(ghClient *github.Client, owner, repo string) (*ScanResults, error) {
+func (s *Scanner) ScanRepository(ghClient github.GitHubClient, owner, repo string) (*ScanResults, error) {
 	prs, err := ghClient.GetPullRequests(owner, repo)
 	if err != nil {
 		return nil, err

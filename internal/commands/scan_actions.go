@@ -22,8 +22,8 @@ type spamUserInfo struct {
 // ActionContext holds service dependencies for executing actions
 type ActionContext struct {
 	cfg       *config.Config
-	ghClient  *github.Client
-	blManager *blocklist.Manager
+	ghClient  github.GitHubClient
+	blManager blocklist.BlocklistManager
 }
 
 // ActionFlags holds configuration for which actions to execute
@@ -134,7 +134,7 @@ func executeBlockActions(ctx *ActionContext, spamUsers map[string]spamUserInfo, 
 }
 
 // blockOnGitHub blocks a user via GitHub API (org or personal)
-func blockOnGitHub(cfg *config.Config, ghClient *github.Client, username string) {
+func blockOnGitHub(cfg *config.Config, ghClient github.GitHubClient, username string) {
 	if cfg.GitHub.Org != "" {
 		if err := ghClient.BlockUserOrg(cfg.GitHub.Org, username); err != nil {
 			fmt.Printf("    ⚠ Failed to block on GitHub (org): %v\n", err)
