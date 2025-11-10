@@ -73,6 +73,7 @@ type BlocklistSource struct {
 // ActionsConfig holds default action configuration
 type ActionsConfig struct {
 	ClosePRs        bool   `yaml:"close_prs"`
+	BlockUsers      bool   `yaml:"block_users"`
 	AddSpamLabel    bool   `yaml:"add_spam_label"`
 	CommentTemplate string `yaml:"comment_template"`
 }
@@ -135,6 +136,26 @@ func Load(path string) (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+// Save writes the configuration to a file
+func Save(config *Config, path string) error {
+	// Ensure directory exists
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	data, err := yaml.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	return nil
 }
 
 // applyEnvOverrides applies environment variable overrides to the config

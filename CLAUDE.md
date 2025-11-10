@@ -21,6 +21,9 @@ make build
 # or
 go build -o prguard ./cmd/prguard
 
+# Initialize config (for testing)
+./prguard init --global=false  # Creates ./config.yaml
+
 # Run tests
 make test
 # or
@@ -68,14 +71,21 @@ make clean
 
 6. **GitHub Integration** (`internal/github/client.go`)
    - Wraps go-github client with OAuth2 token auth
-   - Key methods: `GetPullRequests()`, `GetUser()`, `ClosePullRequest()`, `AddLabel()`, `BlockUser()`
+   - Key methods: `GetPullRequests()`, `GetUser()`, `ClosePullRequest()`, `AddLabel()`
+   - Blocking methods: `BlockUserOrg()` (org-level), `BlockUserPersonal()` (account-level)
+   - **Important**: GitHub API does NOT support repository-level blocking
    - Returns structured `PullRequest` and `User` types
 
 ### Directory Structure (XDG Conventions)
 
-- **Config**: `~/.config/prguard/config.yaml`
-- **Database**: `~/.local/prguard/prguard.db` (auto-created)
+- **Config**: `~/.config/prguard/config.yaml` (global) or `./config.yaml` (local for dev)
+- **Database**: `~/.local/prguard/prguard.db` (global) or `./prguard.db` (local)
 - **Exports**: Configurable via `blocklist.export_path` (default: `./exports`)
+
+**Config Search Order:**
+1. Custom path via `--config` flag
+2. `~/.config/prguard/config.yaml`
+3. `./config.yaml`
 
 ### Spam Detection Logic
 
@@ -110,6 +120,11 @@ All config values can be overridden via `PRGUARD_*` env vars.
 3. Use `initClients()` to get config, GitHub client, blocklist manager, and database
 4. Register in `cmd/prguard/main.go` via `rootCmd.AddCommand()`
 
+**Special Commands:**
+- `init` command doesn't use `initClients()` - it creates the config file interactively
+- Reads git config to suggest defaults for GitHub username
+- Supports `--global` flag to create local vs global config
+
 ### Testing Strategy (TODO)
 
 Per `docs/tasks.md`, tests are planned for:
@@ -126,6 +141,34 @@ When implementing tests, mock the GitHub client and use in-memory SQLite (`:memo
 - **Database Cleanup**: Always `defer db.Close()` after `initClients()`
 - **User Feedback**: Commands print structured output with status indicators (✓)
 - **Repo Format**: Commands expect `owner/repo` format, parsed by `parseRepo()` in `internal/commands/scan.go`
+- **GitHub Blocking Scope**:
+  - Organization blocking affects ALL repos in the org (requires `admin:org` scope)
+  - Personal blocking affects ALL personal repos (requires `user` scope)
+  - Repository-level blocking is NOT possible via GitHub API
+  - Local blocklist provides fine-grained tracking; GitHub API provides enforcement
+
+## GitHub API Blocking Capabilities
+
+### What GitHub Supports
+
+1. **Organization-Level Blocking** (`BlockUserOrg`)
+   - Blocks user from ALL repositories in an organization
+   - Requires `admin:org` token scope
+   - Use case: Organizations with multiple repos
+
+2. **Personal Account-Level Blocking** (`BlockUserPersonal`)
+   - Blocks user from ALL repositories owned by personal account
+   - Requires `user` token scope
+   - Use case: Individual maintainers
+
+3. **Repository-Level Blocking**: ❌ Does NOT exist in GitHub API
+
+### Block Command Behavior
+
+- By default, adds user to local blocklist only
+- Use `--github-block` flag to also block via GitHub API
+- Prompts user with warning about blocking scope (ALL repos)
+- Confirms before executing API block
 
 ## Development Roadmap
 

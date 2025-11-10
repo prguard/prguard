@@ -46,16 +46,48 @@
 - [x] `review` - Show PRs needing manual review
 
 ### Testing
-- [ ] Unit tests for database operations
-- [ ] Unit tests for PR quality heuristics
-- [ ] Unit tests for import/export
-- [ ] Integration tests with mocked GitHub API
+- [x] Unit tests for database operations (in-memory SQLite)
+- [x] Unit tests for PR quality heuristics
+- [x] Unit tests for import/export
+- [ ] Integration tests with mocked GitHub API (optional)
 
 ### Documentation
 - [x] Installation guide
 - [x] Quick start tutorial
 - [x] Command reference
 - [x] Configuration guide
+
+---
+
+## Phase 2: Enhancements
+
+### Automation Features
+- [x] Add --auto-close flag to scan command
+- [x] Add --auto-block flag to scan command
+- [x] Add --github-block flag for GitHub API blocking
+- [x] Implement confirmation prompts for bulk actions
+- [x] Support config file defaults for actions
+
+### Database Improvements
+- [ ] Add migration to track GitHub block status separately (github_blocked boolean field)
+- [ ] Add github_blocked_at timestamp field
+- [ ] Add github_block_scope field (org/personal)
+- [ ] Create index on github_blocked field
+
+### Testing Infrastructure
+- [ ] Refactor commands to use interfaces (GitHubClient, Scanner, BlocklistManager)
+- [ ] Add dependency injection for easier testing
+- [ ] Create mock implementations for testing
+- [ ] Add comprehensive integration tests for scan/block commands
+
+### Future Features
+- [ ] Dry-run mode (--dry-run flag)
+- [ ] Output scan results to JSON (--output flag)
+- [ ] Batch execution from JSON results
+- [ ] GitHub Actions integration
+- [ ] Statistics and reporting
+- [ ] Pattern matching for spam phrases
+- [ ] Turso (remote database) support
 
 ---
 

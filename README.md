@@ -7,7 +7,7 @@ PRGuard helps open source maintainers detect, block, and manage spam pull reques
 - 🔍 **Automatic Spam Detection**: Analyze PRs for spam indicators like single-file README edits, new accounts, and minimal changes
 - 🚫 **Blocklist Management**: Maintain a local database of problematic users with reasons and evidence
 - 📤 **Import/Export**: Share blocklists with other maintainers via JSON or CSV
-- 🤖 **GitHub Integration**: Close PRs, add labels, and block users directly via the GitHub API
+- 🤖 **GitHub Integration**: Close PRs, add labels, and optionally block users via GitHub API (org or account level)
 - ⚙️ **Configurable**: Customize detection thresholds and whitelists to fit your project
 
 ## Installation
@@ -24,13 +24,39 @@ go build -o prguard ./cmd/prguard
 
 Coming soon - binaries will be available via GitHub Releases.
 
+### Dependencies
+
+PRGuard uses [geni](https://github.com/emilpriver/geni) for database migrations. Install it before first use:
+
+```bash
+# Homebrew
+brew install geni
+
+# Cargo (Rust)
+cargo install geni
+```
+
 ## Quick Start
 
-1. **Create a configuration file**:
+### Using `init` command (recommended)
+
+The easiest way to get started is using the interactive setup:
+
+```bash
+./prguard init
+```
+
+This will:
+- Prompt for your GitHub token
+- Detect your GitHub username from git config
+- Create config at `~/.config/prguard/config.yaml`
+- Set sensible defaults for all filters
+
+### Manual Configuration
 
 PRGuard looks for a config file in these locations (in order):
-- `~/.config/prguard/config.yaml` (recommended)
-- `./config.yaml` (current directory)
+- `~/.config/prguard/config.yaml` (global, recommended for daily use)
+- `./config.yaml` (local, useful for development)
 - Custom path via `--config` flag
 
 ```bash
@@ -41,7 +67,7 @@ mkdir -p ~/.config/prguard
 cp config.example.yaml ~/.config/prguard/config.yaml
 ```
 
-2. **Edit your config file** and add your GitHub token:
+**Edit your config file** and add your GitHub token:
 
 ```yaml
 github:
@@ -58,27 +84,55 @@ repositories:
     name: "repo-1"
   - owner: "your-org"
     name: "repo-2"
+
+# Optional: Default actions for scan command
+actions:
+  close_prs: false        # Auto-close spam PRs
+  block_users: false      # Auto-block spam users
+  add_spam_label: true    # Add 'spam' label to PRs
+  comment_template: "This PR has been automatically closed due to spam indicators."
 ```
 
-3. **Scan a repository**:
+### Usage
+
+**Scan a repository**:
 
 ```bash
+# Report only (default)
 ./prguard scan owner/repo
+
+# Automatically close spam PRs
+./prguard scan owner/repo --auto-close
+
+# Automatically block spam users in local blocklist
+./prguard scan owner/repo --auto-block
+
+# Close PRs AND block users
+./prguard scan owner/repo --auto-close --auto-block
+
+# Also block via GitHub API (requires confirmation)
+./prguard scan owner/repo --auto-close --auto-block --github-block
 ```
 
 Or scan all configured repositories at once:
 
 ```bash
-./prguard scan-all
+./prguard scan-all --auto-close --auto-block
 ```
 
-4. **Block a spammer**:
+**Block a spammer**:
 
 ```bash
+# Add to local blocklist only
 ./prguard block username --reason "Spam PRs" --evidence https://github.com/owner/repo/pull/123
+
+# Add to local blocklist AND block via GitHub API
+./prguard block username --reason "Spam PRs" --evidence https://github.com/owner/repo/pull/123 --github-block
 ```
 
-5. **Close spam PRs**:
+**Important**: GitHub blocking works at the **organization** or **personal account** level, not per-repository. When you use `--github-block`, the user will be blocked from ALL repositories in your org/account.
+
+**Close spam PRs**:
 
 ```bash
 ./prguard close-pr owner/repo 123 456
@@ -86,6 +140,7 @@ Or scan all configured repositories at once:
 
 ## Commands
 
+- `init` - Interactive setup wizard (creates config file)
 - `scan <owner>/<repo>` - Analyze PRs in a single repository for spam
 - `scan-all` - Scan all repositories configured in config.yaml
 - `block <username>` - Add a user to the blocklist
@@ -96,6 +151,9 @@ Or scan all configured repositories at once:
 - `import` - Import blocklist from a file or URL
 - `close-pr <owner>/<repo> <pr-number>...` - Close spam PRs
 - `review <owner>/<repo>` - Show PRs needing manual review
+- `migrate up` - Run pending database migrations
+- `migrate down` - Rollback last database migration
+- `migrate status` - Show current migration version
 
 Run `./prguard --help` or `./prguard <command> --help` for detailed usage information.
 
@@ -105,11 +163,18 @@ PRGuard uses a YAML configuration file. See [config.example.yaml](config.example
 
 ### Key Configuration Options
 
-- **GitHub Token**: Required for API access (needs `repo` and `write:discussion` permissions)
+- **GitHub Token**: Required for API access
+  - Basic: `repo`, `write:discussion` (for PR closing, comments, labels)
+  - Organization blocking: `admin:org` (to block users from all org repos)
+  - Personal blocking: `user` (to block users from your personal repos)
 - **Database Path**: Defaults to `~/.local/prguard/prguard.db` for SQLite
 - **Detection Thresholds**: Customize `min_files`, `min_lines`, `account_age_days`
 - **Whitelist**: Trusted contributors who bypass spam detection
-- **Default Actions**: Automatically close PRs and add labels
+- **Default Actions**: Configure automatic behavior for scan command
+  - `actions.close_prs`: Auto-close spam PRs (default: false)
+  - `actions.block_users`: Auto-block spam users (default: false)
+  - `actions.add_spam_label`: Add 'spam' label (default: true)
+  - CLI flags (`--auto-close`, `--auto-block`) take precedence over config
 
 ### Directory Structure
 
@@ -137,6 +202,22 @@ PRGuard automatically flags PRs as spam if they meet these criteria:
 4. **Spam phrases**: Contains known spam patterns (configurable)
 
 PRs with some but not all indicators are marked for manual review.
+
+## GitHub Blocking Behavior
+
+**Important**: GitHub's API only supports blocking at two levels:
+
+1. **Organization Level** (with `github.org` configured):
+   - Blocks user from ALL repositories in the organization
+   - Requires `admin:org` token scope
+   - Use `--github-block` flag with block command
+
+2. **Personal Account Level** (with `github.user` configured):
+   - Blocks user from ALL your personal repositories
+   - Requires `user` token scope
+   - Use `--github-block` flag with block command
+
+**Repository-level blocking is not possible via GitHub API**. PRGuard's local blocklist provides fine-grained tracking (which repo/PR triggered the block), while GitHub's API provides enforcement across all repos in that scope.
 
 ## Blocklist Sharing
 

@@ -21,10 +21,14 @@ func loadConfig(configPath string) (*config.Config, error) {
 
 // initDatabase initializes the database connection
 func initDatabase(cfg *config.Config) (*database.DB, error) {
-	if cfg.Database.Type != "sqlite" {
-		return nil, fmt.Errorf("only sqlite is currently supported")
+	switch cfg.Database.Type {
+	case "sqlite":
+		return database.NewSQLiteDB(cfg.Database.Path)
+	case "turso":
+		return database.NewTursoDB(cfg.Database.URL, cfg.Database.AuthToken)
+	default:
+		return nil, fmt.Errorf("unsupported database type: %s (must be 'sqlite' or 'turso')", cfg.Database.Type)
 	}
-	return database.NewSQLiteDB(cfg.Database.Path)
 }
 
 // initClients initializes the GitHub client and blocklist manager

@@ -2,25 +2,36 @@ package database
 
 import (
 	"database/sql"
+	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/prguard/prguard/pkg/models"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
+
+//go:embed migrations/001_initial_schema.up.sql
+var initialSchema string
 
 // DB wraps a database connection
 type DB struct {
 	conn *sql.DB
+	// Store connection info for migrations
+	dbType    string
+	dbURL     string
+	authToken string
 }
 
 // NewSQLiteDB creates a new SQLite database connection
 func NewSQLiteDB(path string) (*DB, error) {
-	// Ensure the directory exists
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create database directory: %w", err)
+	// Ensure the directory exists (skip for in-memory databases)
+	if path != ":memory:" {
+		dir := filepath.Dir(path)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create database directory: %w", err)
+		}
 	}
 
 	conn, err := sql.Open("sqlite3", path)
@@ -32,20 +43,65 @@ func NewSQLiteDB(path string) (*DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	db := &DB{conn: conn}
+	db := &DB{
+		conn:      conn,
+		dbType:    "sqlite",
+		dbURL:     path,
+		authToken: "",
+	}
 
-	// Initialize schema
-	if err := db.initSchema(); err != nil {
-		return nil, fmt.Errorf("failed to initialize schema: %w", err)
+	// For in-memory databases (used in tests), run SQL migrations directly
+	// For file-based databases, use geni
+	if path == ":memory:" {
+		if err := runSQLMigrations(conn); err != nil {
+			return nil, fmt.Errorf("failed to run SQL migrations: %w", err)
+		}
+	} else {
+		if err := RunMigrations(conn, db.dbType, db.dbURL, db.authToken); err != nil {
+			return nil, fmt.Errorf("failed to run migrations: %w", err)
+		}
 	}
 
 	return db, nil
 }
 
-// initSchema creates the database tables if they don't exist
-func (db *DB) initSchema() error {
-	_, err := db.conn.Exec(schema)
-	return err
+// runSQLMigrations runs migrations directly from embedded SQL (for in-memory databases)
+func runSQLMigrations(conn *sql.DB) error {
+	// Execute the initial schema
+	_, err := conn.Exec(initialSchema)
+	if err != nil {
+		return fmt.Errorf("failed to execute initial schema: %w", err)
+	}
+	return nil
+}
+
+// NewTursoDB creates a new Turso (libSQL) database connection
+func NewTursoDB(url, authToken string) (*DB, error) {
+	// Build connection string for Turso
+	connStr := url + "?authToken=" + authToken
+
+	conn, err := sql.Open("libsql", connStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open turso database: %w", err)
+	}
+
+	if err := conn.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping turso database: %w", err)
+	}
+
+	db := &DB{
+		conn:      conn,
+		dbType:    "turso",
+		dbURL:     url,
+		authToken: authToken,
+	}
+
+	// Run migrations
+	if err := RunMigrations(conn, db.dbType, db.dbURL, db.authToken); err != nil {
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	return db, nil
 }
 
 // Close closes the database connection

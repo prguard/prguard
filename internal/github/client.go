@@ -165,20 +165,40 @@ func (c *Client) AddLabel(owner, repo string, number int, label string) error {
 	return nil
 }
 
-// BlockUser blocks a user at the organization level
-func (c *Client) BlockUser(org, username string) error {
+// BlockUserOrg blocks a user at the organization level
+// This blocks them from ALL repositories in the organization
+func (c *Client) BlockUserOrg(org, username string) error {
 	_, err := c.client.Organizations.BlockUser(c.ctx, org, username)
 	if err != nil {
-		return fmt.Errorf("failed to block user: %w", err)
+		return fmt.Errorf("failed to block user at org level: %w", err)
 	}
 	return nil
 }
 
-// IsUserBlocked checks if a user is blocked at the organization level
-func (c *Client) IsUserBlocked(org, username string) (bool, error) {
+// IsUserBlockedOrg checks if a user is blocked at the organization level
+func (c *Client) IsUserBlockedOrg(org, username string) (bool, error) {
 	blocked, _, err := c.client.Organizations.IsBlocked(c.ctx, org, username)
 	if err != nil {
-		return false, fmt.Errorf("failed to check if user is blocked: %w", err)
+		return false, fmt.Errorf("failed to check if user is blocked at org level: %w", err)
+	}
+	return blocked, nil
+}
+
+// BlockUserPersonal blocks a user at the personal account level
+// This blocks them from ALL repositories owned by your personal account
+func (c *Client) BlockUserPersonal(username string) error {
+	_, err := c.client.Users.BlockUser(c.ctx, username)
+	if err != nil {
+		return fmt.Errorf("failed to block user at account level: %w", err)
+	}
+	return nil
+}
+
+// IsUserBlockedPersonal checks if a user is blocked at the personal account level
+func (c *Client) IsUserBlockedPersonal(username string) (bool, error) {
+	blocked, _, err := c.client.Users.IsBlocked(c.ctx, username)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if user is blocked at account level: %w", err)
 	}
 	return blocked, nil
 }
