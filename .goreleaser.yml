@@ -1,0 +1,69 @@
+# GoReleaser configuration
+# Run with: goreleaser release --snapshot --clean (for testing)
+# Or let GitHub Actions run it on tagged releases
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+    main: ./cmd/prguard
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+
+# Homebrew tap configuration (uncomment when ready)
+# brews:
+#   - name: prguard
+#     repository:
+#       owner: prguard
+#       name: homebrew-tap
+#     homepage: https://github.com/prguard/prguard
+#     description: "GitHub spam PR detection and management tool"
+#     license: "Apache-2.0"
+#     folder: Formula
+#     install: |
+#       bin.install "prguard"
+#     test: |
+#       system "#{bin}/prguard --version"
