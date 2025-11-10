@@ -12,7 +12,6 @@ linters:
     - govet         # Reports suspicious constructs
     - ineffassign   # Detect ineffectual assignments
     - staticcheck   # Advanced Go linting
-    - typecheck     # Type-check Go code
     - unused        # Check for unused code
     - gofmt         # Check code is formatted
     - goimports     # Check imports are formatted
@@ -59,7 +58,6 @@ issues:
     - path: internal/mocks/
       linters:
         - unused
-        - deadcode
 
   max-issues-per-linter: 0
   max-same-issues: 0
