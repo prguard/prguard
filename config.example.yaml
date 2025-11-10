@@ -1,0 +1,57 @@
+# config.example.yaml - PRGuard Configuration Template
+
+github:
+  token: "YOUR_GITHUB_TOKEN_HERE"
+  org: "your-org-name"  # or use 'user' instead
+  # user: "your-username"
+
+database:
+  type: "sqlite"  # or "turso"
+  path: "~/.local/prguard/prguard.db"  # Default location if not specified
+  # For Turso:
+  # type: "turso"
+  # url: "libsql://your-db.turso.io"
+  # auth_token: "${TURSO_AUTH_TOKEN}"
+
+# List of repositories to monitor (optional)
+# Use with 'prguard scan-all' to scan all repos at once
+repositories:
+  - owner: "your-org"
+    name: "repo-1"
+  - owner: "your-org"
+    name: "repo-2"
+  # Add more repositories as needed
+
+filters:
+  min_files: 2
+  min_lines: 10
+  account_age_days: 7
+  readme_only_block: true
+
+  # Whitelist trusted contributors
+  whitelist:
+    - "dependabot[bot]"
+    - "renovate[bot]"
+
+  # Spam phrase patterns (optional)
+  spam_phrases:
+    - "click here"
+    - "visit my site"
+
+blocklist:
+  auto_export: true
+  export_path: "./exports"
+
+  # Subscribe to trusted blocklist sources
+  sources:
+    - name: "Community Maintainers"
+      url: "https://example.com/blocklist.json"
+      trusted: true
+      auto_sync: false
+
+actions:
+  close_prs: true
+  add_spam_label: true
+  comment_template: |
+    This PR has been automatically closed due to low quality indicators.
+    If you believe this is an error, please contact the maintainers.
