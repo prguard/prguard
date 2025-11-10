@@ -177,3 +177,4 @@ See `docs/tasks.md` for current status. MVP is complete. Next priorities:
 - Turso database support
 - CSV import functionality
 - GitHub Actions integration
+- All new Go should have the Apache 2 license at the top of each file that we create so that we are in compliance with the license.

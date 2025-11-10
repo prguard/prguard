@@ -1,5 +1,5 @@
 # Binaries
-prguard
+/prguard
 *.exe
 *.dll
 *.so
