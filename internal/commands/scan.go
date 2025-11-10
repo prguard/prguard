@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/prguard/prguard/internal/scanner"
-	"github.com/prguard/prguard/pkg/models"
 	"github.com/spf13/cobra"
 )
 
@@ -43,22 +42,15 @@ func runScan(configPath, repo string, autoClose, autoBlock, githubBlock bool) er
 		return fmt.Errorf("--github-block requires --auto-block")
 	}
 
+	// Initialize clients and database
 	cfg, ghClient, blManager, db, err := initClients(configPath)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
-	// Apply config defaults if flags weren't explicitly set
-	// Note: Cobra doesn't provide a way to detect if a bool flag was explicitly set,
-	// so we assume false means "use config default" and true means "force enable"
-	// This means CLI can only enable, not disable config defaults
-	if !autoClose && cfg.Actions.ClosePRs {
-		autoClose = true
-	}
-	if !autoBlock && cfg.Actions.BlockUsers {
-		autoBlock = true
-	}
+	// Apply config defaults to flags
+	autoClose, autoBlock = applyConfigDefaults(cfg, autoClose, autoBlock)
 
 	// Parse owner/repo
 	owner, repoName, err := parseRepo(repo)
@@ -68,156 +60,35 @@ func runScan(configPath, repo string, autoClose, autoBlock, githubBlock bool) er
 
 	fmt.Printf("Scanning repository %s/%s...\n\n", owner, repoName)
 
-	// Create scanner
+	// Scan repository for spam PRs
 	scan := scanner.NewScanner(cfg)
-
-	// Scan repository
 	results, err := scan.ScanRepository(ghClient, owner, repoName)
 	if err != nil {
 		return fmt.Errorf("scan failed: %w", err)
 	}
 
-	// Display results summary
-	fmt.Printf("Total PRs: %d\n", results.Total)
-	fmt.Printf("Spam detected: %d\n", len(results.Spam))
-	fmt.Printf("Uncertain: %d\n", len(results.Uncertain))
-	fmt.Printf("Clean: %d\n\n", len(results.Clean))
+	// Display scan results
+	displayScanSummary(results)
+	spamUsers := collectSpamUsers(results)
+	displayUncertainResults(results)
 
-	// Collect unique spam users
-	spamUsers := make(map[string]struct {
-		firstPR     int
-		evidenceURL string
-		severity    string
-		reasons     []string
-	})
-
-	if len(results.Spam) > 0 {
-		fmt.Println("=== SPAM DETECTED ===")
-		for _, result := range results.Spam {
-			fmt.Printf("\nPR #%d: %s\n", result.PR.Number, result.PR.Title)
-			fmt.Printf("  Author: %s\n", result.PR.Author)
-			fmt.Printf("  URL: %s\n", result.PR.HTMLURL)
-			fmt.Printf("  Severity: %s\n", result.Severity)
-			fmt.Printf("  Reasons:\n")
-			for _, reason := range result.Reasons {
-				fmt.Printf("    - %s\n", reason)
-			}
-			fmt.Printf("  Recommended action: %s\n", result.RecommendAction)
-
-			// Track user for potential blocking
-			if _, exists := spamUsers[result.PR.Author]; !exists {
-				spamUsers[result.PR.Author] = struct {
-					firstPR     int
-					evidenceURL string
-					severity    string
-					reasons     []string
-				}{
-					firstPR:     result.PR.Number,
-					evidenceURL: result.PR.HTMLURL,
-					severity:    result.Severity,
-					reasons:     result.Reasons,
-				}
-			}
-		}
+	// Execute automated actions if requested
+	ctx := &ActionContext{
+		cfg:       cfg,
+		ghClient:  ghClient,
+		blManager: blManager,
+	}
+	flags := &ActionFlags{
+		autoClose:   autoClose,
+		autoBlock:   autoBlock,
+		githubBlock: githubBlock,
+	}
+	if err := executeAutomatedActions(ctx, owner, repoName, results, spamUsers, flags); err != nil {
+		return err
 	}
 
-	if len(results.Uncertain) > 0 {
-		fmt.Println("\n=== MANUAL REVIEW NEEDED ===")
-		for _, result := range results.Uncertain {
-			fmt.Printf("\nPR #%d: %s\n", result.PR.Number, result.PR.Title)
-			fmt.Printf("  Author: %s\n", result.PR.Author)
-			fmt.Printf("  URL: %s\n", result.PR.HTMLURL)
-			fmt.Printf("  Reasons:\n")
-			for _, reason := range result.Reasons {
-				fmt.Printf("    - %s\n", reason)
-			}
-		}
-	}
-
-	// Take automated actions if flags are set
-	if len(results.Spam) > 0 && (autoClose || autoBlock) {
-		fmt.Println("\n=== AUTOMATED ACTIONS ===")
-
-		// Confirm with user
-		if !confirmAction(len(results.Spam), len(spamUsers), autoClose, autoBlock, githubBlock) {
-			fmt.Println("Actions cancelled by user.")
-			return nil
-		}
-
-		// Block users first
-		if autoBlock {
-			fmt.Printf("\nBlocking %d spam users...\n", len(spamUsers))
-
-			blockedBy := cfg.GitHub.User
-			if blockedBy == "" {
-				blockedBy = cfg.GitHub.Org
-			}
-
-			for username, info := range spamUsers {
-				// Add to local blocklist
-				reason := fmt.Sprintf("Auto-detected spam: %s", strings.Join(info.reasons, ", "))
-				_, err := blManager.Block(username, reason, info.evidenceURL, blockedBy, info.severity, models.SourceAutoDetected)
-				if err != nil {
-					fmt.Printf("  ✗ Failed to block %s: %v\n", username, err)
-					continue
-				}
-				fmt.Printf("  ✓ Blocked %s in local blocklist\n", username)
-
-				// Block on GitHub if requested
-				if githubBlock {
-					if cfg.GitHub.Org != "" {
-						if err := ghClient.BlockUserOrg(cfg.GitHub.Org, username); err != nil {
-							fmt.Printf("    ⚠ Failed to block on GitHub (org): %v\n", err)
-						} else {
-							fmt.Printf("    ✓ Blocked on GitHub (org level)\n")
-						}
-					} else if cfg.GitHub.User != "" {
-						if err := ghClient.BlockUserPersonal(username); err != nil {
-							fmt.Printf("    ⚠ Failed to block on GitHub (personal): %v\n", err)
-						} else {
-							fmt.Printf("    ✓ Blocked on GitHub (personal level)\n")
-						}
-					}
-				}
-			}
-		}
-
-		// Close PRs
-		if autoClose {
-			fmt.Printf("\nClosing %d spam PRs...\n", len(results.Spam))
-			comment := cfg.Actions.CommentTemplate
-			if comment == "" {
-				comment = "This PR has been automatically closed due to spam indicators."
-			}
-
-			for _, result := range results.Spam {
-				// Add label if configured
-				if cfg.Actions.AddSpamLabel {
-					if err := ghClient.AddLabel(owner, repoName, result.PR.Number, "spam"); err != nil {
-						fmt.Printf("  ⚠ PR #%d: failed to add label: %v\n", result.PR.Number, err)
-					}
-				}
-
-				// Close the PR
-				if err := ghClient.ClosePullRequest(owner, repoName, result.PR.Number, comment); err != nil {
-					fmt.Printf("  ✗ PR #%d: failed to close: %v\n", result.PR.Number, err)
-				} else {
-					fmt.Printf("  ✓ PR #%d closed\n", result.PR.Number)
-				}
-			}
-		}
-
-		fmt.Println("\n✓ Automated actions completed")
-	}
-
-	// Print summary
-	if len(results.Spam) > 0 && !autoClose && !autoBlock {
-		fmt.Println("\nTo take action automatically, use:")
-		fmt.Printf("  prguard scan %s --auto-close --auto-block\n", repo)
-		if githubBlock {
-			fmt.Printf("  Add --github-block to also block on GitHub\n")
-		}
-	}
+	// Show suggestions if no actions taken
+	displayActionSuggestions(repo, len(results.Spam) > 0, autoClose, autoBlock, githubBlock)
 
 	return nil
 }

@@ -33,28 +33,18 @@ func runInit(global bool) error {
 	reader := bufio.NewReader(os.Stdin)
 
 	// Determine config path
-	var configPath string
-	if global {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return fmt.Errorf("failed to get home directory: %w", err)
-		}
-		configDir := filepath.Join(home, ".config", "prguard")
-		configPath = filepath.Join(configDir, "config.yaml")
-	} else {
-		configPath = "./config.yaml"
+	configPath, err := determineConfigPath(global)
+	if err != nil {
+		return err
 	}
 
-	// Check if config already exists
-	if _, err := os.Stat(configPath); err == nil {
-		fmt.Printf("Config file already exists at: %s\n", configPath)
-		fmt.Print("Overwrite? (y/N): ")
-		response, _ := reader.ReadString('\n')
-		response = strings.TrimSpace(strings.ToLower(response))
-		if response != "y" && response != "yes" {
-			fmt.Println("Initialization cancelled.")
-			return nil
-		}
+	// Check if config already exists and prompt for overwrite
+	shouldProceed, err := promptOverwriteExisting(configPath, reader)
+	if err != nil {
+		return err
+	}
+	if !shouldProceed {
+		return nil
 	}
 
 	fmt.Println("=== PRGuard Configuration Setup ===")
@@ -67,92 +57,33 @@ func runInit(global bool) error {
 	}
 
 	// Prompt for GitHub token
-	fmt.Println("GitHub Personal Access Token:")
-	fmt.Println("  Create one at: https://github.com/settings/tokens")
-	fmt.Println("  Required scopes: repo, write:discussion")
-	fmt.Print("Token: ")
-	token, _ := reader.ReadString('\n')
-	token = strings.TrimSpace(token)
-
-	if token == "" {
-		return fmt.Errorf("GitHub token is required")
+	token, err := promptGitHubToken(reader)
+	if err != nil {
+		return err
 	}
 
 	// Prompt for org or user
-	fmt.Println("\nGitHub Organization or User:")
-	if gitUser != "" {
-		fmt.Printf("  Detected from git config: %s\n", gitUser)
-	}
-	fmt.Print("Enter org name (or press Enter for user mode): ")
-	org, _ := reader.ReadString('\n')
-	org = strings.TrimSpace(org)
-
-	var user string
-	if org == "" {
-		if gitUser != "" {
-			fmt.Printf("Use '%s' as username? (Y/n): ", gitUser)
-			response, _ := reader.ReadString('\n')
-			response = strings.TrimSpace(strings.ToLower(response))
-			if response == "" || response == "y" || response == "yes" {
-				user = gitUser
-			}
-		}
-
-		if user == "" {
-			fmt.Print("GitHub username: ")
-			user, _ = reader.ReadString('\n')
-			user = strings.TrimSpace(user)
-		}
-
-		if user == "" {
-			return fmt.Errorf("either org or user is required")
-		}
+	org, user, err := promptOrgOrUser(reader, gitUser)
+	if err != nil {
+		return err
 	}
 
 	// Prompt for repositories (optional)
-	fmt.Println("\nRepositories to monitor (optional):")
-	fmt.Println("  Enter repositories in 'owner/repo' format, one per line")
-	fmt.Println("  Press Enter on empty line to finish")
-
-	var repos []string
-	for {
-		fmt.Print("Repository (or Enter to skip): ")
-		repo, _ := reader.ReadString('\n')
-		repo = strings.TrimSpace(repo)
-
-		if repo == "" {
-			break
-		}
-
-		// Validate format
-		parts := strings.Split(repo, "/")
-		if len(parts) != 2 {
-			fmt.Println("  Invalid format. Use: owner/repo")
-			continue
-		}
-
-		repos = append(repos, repo)
+	repos, err := promptRepositories(reader)
+	if err != nil {
+		return err
 	}
 
 	// Build config content
 	config := buildConfig(token, org, user, repos, global)
 
-	// Create directory if needed
-	dir := filepath.Dir(configPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
-	}
-
 	// Write config file
-	if err := os.WriteFile(configPath, []byte(config), 0600); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
+	if err := writeConfigFile(configPath, config); err != nil {
+		return err
 	}
 
-	fmt.Printf("\n✓ Configuration created at: %s\n", configPath)
-	fmt.Println("\nNext steps:")
-	fmt.Println("  1. Review and edit the config file if needed")
-	fmt.Println("  2. Run: prguard scan owner/repo")
-	fmt.Println("  3. Or: prguard scan-all (if you added repositories)")
+	// Display success message
+	displayInitSuccess(configPath)
 
 	return nil
 }
@@ -241,6 +172,7 @@ func buildConfig(token, org, user string, repos []string, global bool) string {
 	sb.WriteString("# Default actions\n")
 	sb.WriteString("actions:\n")
 	sb.WriteString("  close_prs: false\n")
+	sb.WriteString("  block_users: false\n")
 	sb.WriteString("  add_spam_label: true\n")
 	sb.WriteString("  comment_template: |\n")
 	sb.WriteString("    This PR has been flagged as potential spam and closed.\n")
