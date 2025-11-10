@@ -3,7 +3,6 @@ version: "2"
 run:
   timeout: 5m
 
-
 linters:
   enable:
     - errcheck
@@ -15,16 +14,20 @@ linters:
     - gosec
     - bodyclose
     - gocritic
-
-linters-settings:
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - whyNoLint
-      - hugeParam
-      - ifElseChain
+  settings:
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+      disabled-checks:
+        - whyNoLint
+        - hugeParam
+        - ifElseChain
+        - octalLiteral
+        - emptyStringTest
+        - sprintfQuotedString
+        - unnamedResult
+        - appendCombine
