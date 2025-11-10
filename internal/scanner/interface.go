@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package scanner provides spam detection heuristics for GitHub pull requests.
 package scanner
 
 import "github.com/prguard/prguard/internal/github"

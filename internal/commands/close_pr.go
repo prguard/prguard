@@ -31,7 +31,7 @@ func NewClosePRCommand(configPath *string) *cobra.Command {
 		Short: "Close one or more spam pull requests",
 		Long:  `Closes pull requests and optionally adds a spam label`,
 		Args:  cobra.MinimumNArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			repo = args[0]
 			prNumbers := args[1:]
 			return runClosePR(*configPath, repo, prNumbers, comment, addLabel)
@@ -49,7 +49,7 @@ func runClosePR(configPath, repo string, prNumbers []string, comment string, add
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Parse owner/repo
 	owner, repoName, err := parseRepo(repo)

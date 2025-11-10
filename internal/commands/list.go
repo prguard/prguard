@@ -26,7 +26,7 @@ func NewListCommand(configPath *string) *cobra.Command {
 		Use:   "list",
 		Short: "List all blocklist entries",
 		Long:  `Displays all users in the blocklist with their details`,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runList(*configPath)
 		},
 	}
@@ -38,7 +38,7 @@ func runList(configPath string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	entries, err := blManager.List()
 	if err != nil {

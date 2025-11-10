@@ -20,7 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // SQLite driver
 	"github.com/prguard/prguard/internal/config"
 	"github.com/prguard/prguard/internal/database"
 	"github.com/spf13/cobra"
@@ -50,7 +50,7 @@ func newMigrateUpCommand(configPath *string) *cobra.Command {
 		Use:   "up",
 		Short: "Run pending migrations",
 		Long:  `Applies all pending database migrations`,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runMigrateUp(*configPath)
 		},
 	}
@@ -61,7 +61,7 @@ func newMigrateDownCommand(configPath *string) *cobra.Command {
 		Use:   "down",
 		Short: "Rollback last migration",
 		Long:  `Rolls back the most recent database migration`,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runMigrateDown(*configPath)
 		},
 	}
@@ -72,7 +72,7 @@ func newMigrateStatusCommand(configPath *string) *cobra.Command {
 		Use:   "status",
 		Short: "Show migration status",
 		Long:  `Displays the current database migration version`,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runMigrateStatus(*configPath)
 		},
 	}
@@ -89,7 +89,7 @@ func runMigrateUp(configPath string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Get database URL and auth token based on type
 	var dbURL, authToken string
@@ -126,7 +126,7 @@ func runMigrateDown(configPath string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Get version before rollback
 	versionBefore, err := database.MigrationStatus(db)
@@ -174,7 +174,7 @@ func runMigrateStatus(configPath string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	version, err := database.MigrationStatus(db)
 	if err != nil {
@@ -193,7 +193,7 @@ func openDatabase(cfg *config.Config) (*sql.DB, error) {
 	case "sqlite":
 		// Ensure directory exists
 		dir := filepath.Dir(cfg.Database.Path)
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0750); err != nil {
 			return nil, fmt.Errorf("failed to create database directory: %w", err)
 		}
 

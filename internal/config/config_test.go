@@ -55,7 +55,7 @@ actions:
   comment_template: "Test comment"
 `
 
-	err := os.WriteFile(configPath, []byte(configContent), 0644)
+	err := os.WriteFile(configPath, []byte(configContent), 0644) //nolint:gosec // test file
 	if err != nil {
 		t.Fatalf("Failed to write test config: %v", err)
 	}
@@ -141,7 +141,7 @@ repositories:
     name: "repo2"
 `
 
-	os.WriteFile(configPath, []byte(configContent), 0644)
+	_ = os.WriteFile(configPath, []byte(configContent), 0644) //nolint:errcheck,gosec // test file
 
 	cfg, err := Load(configPath)
 	if err != nil {
@@ -277,13 +277,13 @@ func TestSetDefaults(t *testing.T) {
 
 func TestEnvOverrides(t *testing.T) {
 	// Set environment variables
-	os.Setenv("PRGUARD_GITHUB_TOKEN", "env-token")
-	os.Setenv("PRGUARD_GITHUB_ORG", "env-org")
-	os.Setenv("PRGUARD_DATABASE_PATH", "/env/path/db")
+	_ = os.Setenv("PRGUARD_GITHUB_TOKEN", "env-token")     //nolint:errcheck
+	_ = os.Setenv("PRGUARD_GITHUB_ORG", "env-org")         //nolint:errcheck
+	_ = os.Setenv("PRGUARD_DATABASE_PATH", "/env/path/db") //nolint:errcheck
 	defer func() {
-		os.Unsetenv("PRGUARD_GITHUB_TOKEN")
-		os.Unsetenv("PRGUARD_GITHUB_ORG")
-		os.Unsetenv("PRGUARD_DATABASE_PATH")
+		_ = os.Unsetenv("PRGUARD_GITHUB_TOKEN")  //nolint:errcheck
+		_ = os.Unsetenv("PRGUARD_GITHUB_ORG")    //nolint:errcheck
+		_ = os.Unsetenv("PRGUARD_DATABASE_PATH") //nolint:errcheck
 	}()
 
 	tmpDir := t.TempDir()
@@ -299,7 +299,7 @@ database:
   path: "/config/path/db"
 `
 
-	os.WriteFile(configPath, []byte(configContent), 0644)
+	_ = os.WriteFile(configPath, []byte(configContent), 0644) //nolint:errcheck,gosec // test file
 
 	cfg, err := Load(configPath)
 	if err != nil {
@@ -348,7 +348,7 @@ func TestFindConfigPath_CustomPath(t *testing.T) {
 	customPath := filepath.Join(tmpDir, "custom-config.yaml")
 
 	// Create the file
-	os.WriteFile(customPath, []byte("test: value"), 0644)
+	_ = os.WriteFile(customPath, []byte("test: value"), 0644) //nolint:errcheck,gosec // test file
 
 	path, err := FindConfigPath(customPath)
 	if err != nil {

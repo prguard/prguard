@@ -28,7 +28,7 @@ func NewImportCommand(configPath *string) *cobra.Command {
 		Use:   "import",
 		Short: "Import blocklist entries from a file or URL",
 		Long:  `Imports blocklist entries from a JSON file or remote URL`,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runImport(*configPath, file, url)
 		},
 	}
@@ -51,7 +51,7 @@ func runImport(configPath, file, url string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	var imported int
 

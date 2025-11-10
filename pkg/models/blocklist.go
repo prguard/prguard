@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package models defines the data structures used throughout PRGuard.
 package models
 
 import (

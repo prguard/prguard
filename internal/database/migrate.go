@@ -50,7 +50,7 @@ func getMigrationsPath() (string, error) {
 // dbType: "sqlite" or "turso"
 // dbURL: file path for sqlite, or libsql:// URL for turso
 // authToken: empty for sqlite, auth token for turso
-func RunMigrations(db *sql.DB, dbType, dbURL, authToken string) error {
+func RunMigrations(_ *sql.DB, dbType, dbURL, authToken string) error {
 	if err := checkGeniInstalled(); err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func RunMigrations(db *sql.DB, dbType, dbURL, authToken string) error {
 }
 
 // Rollback rolls back the last migration using geni CLI
-func Rollback(db *sql.DB, dbType, dbURL, authToken string) error {
+func Rollback(_ *sql.DB, dbType, dbURL, authToken string) error {
 	if err := checkGeniInstalled(); err != nil {
 		return err
 	}

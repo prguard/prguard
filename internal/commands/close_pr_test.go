@@ -166,10 +166,8 @@ func executeClosePR(ghClient github.GitHubClient, owner, repo string, prNumbers 
 	for _, prNum := range prNumbers {
 		// Add label if requested
 		if addLabel {
-			if err := ghClient.AddLabel(owner, repo, prNum, "spam"); err != nil {
-				// Label failure is not fatal, just log it
-				// In the real command this would print a warning
-			}
+			_ = ghClient.AddLabel(owner, repo, prNum, "spam") //nolint:errcheck
+			// Label failure is not fatal in tests
 		}
 
 		// Close the PR

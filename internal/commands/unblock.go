@@ -27,7 +27,7 @@ func NewUnblockCommand(configPath *string) *cobra.Command {
 		Short: "Remove a user from the blocklist",
 		Long:  `Removes all blocklist entries for a GitHub user`,
 		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return runUnblock(*configPath, args[0])
 		},
 	}
@@ -39,7 +39,7 @@ func runUnblock(configPath, username string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Check if user is blocked
 	blocked, err := blManager.IsBlocked(username)

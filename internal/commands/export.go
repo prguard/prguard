@@ -29,7 +29,7 @@ func NewExportCommand(configPath *string) *cobra.Command {
 		Use:   "export",
 		Short: "Export the blocklist to a file",
 		Long:  `Exports the blocklist to JSON or CSV format`,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runExport(*configPath, format, output)
 		},
 	}
@@ -45,15 +45,16 @@ func runExport(configPath, format, output string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Determine output path
 	if output == "" {
-		if format == "json" {
+		switch format {
+		case "json":
 			output = "blocklist.json"
-		} else if format == "csv" {
+		case "csv":
 			output = "blocklist.csv"
-		} else {
+		default:
 			return fmt.Errorf("invalid format, must be json or csv")
 		}
 	}

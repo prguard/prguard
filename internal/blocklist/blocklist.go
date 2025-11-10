@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package blocklist provides functionality for managing a local database of blocked GitHub users.
 package blocklist
 
 import (
@@ -78,7 +79,7 @@ func (m *Manager) ExportJSON(path string) error {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
@@ -92,11 +93,11 @@ func (m *Manager) ExportCSV(path string) error {
 		return fmt.Errorf("failed to get entries: %w", err)
 	}
 
-	file, err := os.Create(path)
+	file, err := os.Create(path) //nolint:gosec // user-specified export path
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck
 
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
@@ -128,7 +129,7 @@ func (m *Manager) ExportCSV(path string) error {
 
 // ImportJSON imports blocklist entries from a JSON file
 func (m *Manager) ImportJSON(path string) (int, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // user-specified import path
 	if err != nil {
 		return 0, fmt.Errorf("failed to read file: %w", err)
 	}
@@ -143,11 +144,11 @@ func (m *Manager) ImportJSON(path string) (int, error) {
 
 // ImportJSONFromURL imports blocklist entries from a remote JSON URL
 func (m *Manager) ImportJSONFromURL(url string) (int, error) {
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint:gosec // user-configured blocklist URL
 	if err != nil {
 		return 0, fmt.Errorf("failed to fetch URL: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		return 0, fmt.Errorf("HTTP error: %s", resp.Status)
@@ -199,12 +200,12 @@ func (m *Manager) importEntries(entries []*models.BlocklistEntry) (int, error) {
 }
 
 // shouldUpdate determines if an existing entry should be updated with new data
-func shouldUpdate(existing, new *models.BlocklistEntry) bool {
+func shouldUpdate(existing, incoming *models.BlocklistEntry) bool {
 	// Update if new entry has higher severity
 	severityMap := map[string]int{
 		models.SeverityLow:    1,
 		models.SeverityMedium: 2,
 		models.SeverityHigh:   3,
 	}
-	return severityMap[new.Severity] > severityMap[existing.Severity]
+	return severityMap[incoming.Severity] > severityMap[existing.Severity]
 }

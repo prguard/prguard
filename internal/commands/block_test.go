@@ -41,7 +41,7 @@ func TestBlockCommand_Flags(t *testing.T) {
 
 	severityFlag := cmd.Flags().Lookup("severity")
 	if severityFlag == nil {
-		t.Error("severity flag not found")
+		t.Fatal("severity flag not found")
 	}
 	if severityFlag.DefValue != "medium" {
 		t.Errorf("severity default should be 'medium', got %s", severityFlag.DefValue)
@@ -86,7 +86,7 @@ func TestBlockCommand_SeverityValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	tests := []struct {
 		name     string
@@ -152,7 +152,7 @@ func TestBlockCommand_Integration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Test blocking a user (without GitHub API)
 	err = runBlock(configPath, "testuser", "spam", "https://github.com/test/repo/pull/1", models.SeverityMedium, false)
@@ -224,7 +224,7 @@ func TestBlockCommand_DuplicateUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Block user first time
 	err = runBlock(configPath, "spammer", "spam", "https://github.com/test/repo/pull/1", models.SeverityLow, false)

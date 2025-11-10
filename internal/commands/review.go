@@ -28,7 +28,7 @@ func NewReviewCommand(configPath *string) *cobra.Command {
 		Short: "Show PRs that need manual review",
 		Long:  `Displays pull requests that have suspicious indicators but are not definitively spam`,
 		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return runReview(*configPath, args[0])
 		},
 	}
@@ -40,7 +40,7 @@ func runReview(configPath, repo string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Parse owner/repo
 	owner, repoName, err := parseRepo(repo)

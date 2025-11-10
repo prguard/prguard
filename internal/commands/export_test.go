@@ -59,7 +59,7 @@ func TestExportCommand_JSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Add test entries
 	manager := blocklist.NewManager(db)
@@ -83,7 +83,7 @@ func TestExportCommand_JSON(t *testing.T) {
 	}
 
 	// Verify contents
-	data, err := os.ReadFile(exportPath)
+	data, err := os.ReadFile(exportPath) //nolint:gosec // test file
 	if err != nil {
 		t.Fatalf("failed to read export file: %v", err)
 	}
@@ -142,7 +142,7 @@ func TestExportCommand_CSV(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Add test entry
 	manager := blocklist.NewManager(db)
@@ -163,7 +163,7 @@ func TestExportCommand_CSV(t *testing.T) {
 	}
 
 	// Verify contents (basic check)
-	data, err := os.ReadFile(exportPath)
+	data, err := os.ReadFile(exportPath) //nolint:gosec // test file
 	if err != nil {
 		t.Fatalf("failed to read export file: %v", err)
 	}
@@ -188,9 +188,9 @@ func TestExportCommand_DefaultPath(t *testing.T) {
 	configPath := filepath.Join(tempDir, "config.yaml")
 
 	// Change to temp directory so default export path is there
-	oldWd, _ := os.Getwd()
-	defer os.Chdir(oldWd)
-	os.Chdir(tempDir)
+	oldWd, _ := os.Getwd() //nolint:errcheck
+	defer os.Chdir(oldWd)  //nolint:errcheck
+	_ = os.Chdir(tempDir)  //nolint:errcheck
 
 	// Create test config
 	cfg := &config.Config{
@@ -213,7 +213,7 @@ func TestExportCommand_DefaultPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Export with default path (empty string)
 	err = runExport(configPath, "json", "")
@@ -259,7 +259,7 @@ func TestExportCommand_InvalidFormat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Try invalid format
 	err = runExport(configPath, "xml", "")
@@ -300,7 +300,7 @@ func TestExportCommand_EmptyBlocklist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Export empty blocklist
 	err = runExport(configPath, "json", exportPath)
@@ -309,7 +309,7 @@ func TestExportCommand_EmptyBlocklist(t *testing.T) {
 	}
 
 	// Verify file was created with empty array
-	data, err := os.ReadFile(exportPath)
+	data, err := os.ReadFile(exportPath) //nolint:gosec // test file
 	if err != nil {
 		t.Fatalf("failed to read export file: %v", err)
 	}

@@ -27,7 +27,7 @@ func NewCheckCommand(configPath *string) *cobra.Command {
 		Short: "Check if a user is in the blocklist",
 		Long:  `Checks if a GitHub user is currently blocked`,
 		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return runCheck(*configPath, args[0])
 		},
 	}
@@ -39,7 +39,7 @@ func runCheck(configPath, username string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Check if user is blocked
 	blocked, err := blManager.IsBlocked(username)

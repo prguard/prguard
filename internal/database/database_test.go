@@ -32,7 +32,7 @@ func setupTestDB(t *testing.T) *DB {
 
 func TestAddEntry(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	entry := models.NewBlocklistEntry(
 		"spammer123",
@@ -65,7 +65,7 @@ func TestAddEntry(t *testing.T) {
 
 func TestIsBlocked(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// User should not be blocked initially
 	blocked, err := db.IsBlocked("testuser")
@@ -85,7 +85,7 @@ func TestIsBlocked(t *testing.T) {
 		models.SeverityMedium,
 		models.SourceManual,
 	)
-	db.AddEntry(entry)
+	_ = db.AddEntry(entry) //nolint:errcheck
 
 	// User should now be blocked
 	blocked, err = db.IsBlocked("testuser")
@@ -99,7 +99,7 @@ func TestIsBlocked(t *testing.T) {
 
 func TestGetEntriesByUsername(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	username := "multientry"
 
@@ -107,8 +107,8 @@ func TestGetEntriesByUsername(t *testing.T) {
 	entry1 := models.NewBlocklistEntry(username, "Reason 1", "https://example.com/1", "admin", models.SeverityLow, models.SourceManual)
 	entry2 := models.NewBlocklistEntry(username, "Reason 2", "https://example.com/2", "admin", models.SeverityHigh, models.SourceImported)
 
-	db.AddEntry(entry1)
-	db.AddEntry(entry2)
+	_ = db.AddEntry(entry1) //nolint:errcheck
+	_ = db.AddEntry(entry2) //nolint:errcheck
 
 	entries, err := db.GetEntriesByUsername(username)
 	if err != nil {
@@ -122,7 +122,7 @@ func TestGetEntriesByUsername(t *testing.T) {
 
 func TestListEntries(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Add test entries
 	for i := 0; i < 3; i++ {
@@ -134,7 +134,7 @@ func TestListEntries(t *testing.T) {
 			models.SeverityMedium,
 			models.SourceManual,
 		)
-		db.AddEntry(entry)
+		_ = db.AddEntry(entry)       //nolint:errcheck
 		time.Sleep(time.Millisecond) // Ensure different timestamps
 	}
 
@@ -157,10 +157,10 @@ func TestListEntries(t *testing.T) {
 
 func TestRemoveEntry(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	entry := models.NewBlocklistEntry("toremove", "Test", "https://example.com", "admin", models.SeverityLow, models.SourceManual)
-	db.AddEntry(entry)
+	_ = db.AddEntry(entry) //nolint:errcheck
 
 	// Verify entry exists
 	blocked, _ := db.IsBlocked("toremove")
@@ -183,7 +183,7 @@ func TestRemoveEntry(t *testing.T) {
 
 func TestRemoveByUsername(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	username := "multiremove"
 
@@ -191,8 +191,8 @@ func TestRemoveByUsername(t *testing.T) {
 	entry1 := models.NewBlocklistEntry(username, "Reason 1", "https://example.com/1", "admin", models.SeverityLow, models.SourceManual)
 	entry2 := models.NewBlocklistEntry(username, "Reason 2", "https://example.com/2", "admin", models.SeverityHigh, models.SourceImported)
 
-	db.AddEntry(entry1)
-	db.AddEntry(entry2)
+	_ = db.AddEntry(entry1) //nolint:errcheck
+	_ = db.AddEntry(entry2) //nolint:errcheck
 
 	// Remove all by username
 	err := db.RemoveByUsername(username)
@@ -209,10 +209,10 @@ func TestRemoveByUsername(t *testing.T) {
 
 func TestUpdateEntry(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	entry := models.NewBlocklistEntry("updatetest", "Original reason", "https://example.com", "admin", models.SeverityLow, models.SourceManual)
-	db.AddEntry(entry)
+	_ = db.AddEntry(entry) //nolint:errcheck
 
 	// Update the entry
 	entry.Reason = "Updated reason"
@@ -240,7 +240,7 @@ func TestUpdateEntry(t *testing.T) {
 
 func TestSeverityConstraint(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	entry := &models.BlocklistEntry{
 		ID:          "test-id",
@@ -262,7 +262,7 @@ func TestSeverityConstraint(t *testing.T) {
 
 func TestSourceConstraint(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	entry := &models.BlocklistEntry{
 		ID:          "test-id",

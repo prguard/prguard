@@ -55,7 +55,7 @@ func TestCheckCommand_UserBlocked(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Add a blocked user
 	manager := blocklist.NewManager(db)
@@ -102,7 +102,7 @@ func TestCheckCommand_UserNotBlocked(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Check should report user as not blocked
 	err = runCheck(configPath, "normaluser")
@@ -142,7 +142,7 @@ func TestCheckCommand_MultipleEntries(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Add multiple entries for the same user
 	manager := blocklist.NewManager(db)

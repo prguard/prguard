@@ -26,14 +26,14 @@ import (
 )
 
 // NewInitCommand creates the init command
-func NewInitCommand(configPath *string) *cobra.Command {
+func NewInitCommand(_ *string) *cobra.Command {
 	var global bool
 
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize PRGuard configuration",
 		Long:  `Creates a new configuration file with interactive prompts`,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runInit(global)
 		},
 	}

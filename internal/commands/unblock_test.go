@@ -55,7 +55,7 @@ func TestUnblockCommand_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Add a blocked user
 	manager := blocklist.NewManager(db)
@@ -120,7 +120,7 @@ func TestUnblockCommand_UserNotBlocked(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Try to unblock a user that isn't blocked - should succeed without error
 	err = runUnblock(configPath, "notblocked")
@@ -160,7 +160,7 @@ func TestUnblockCommand_MultipleEntries(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Add multiple entries for the same user
 	manager := blocklist.NewManager(db)

@@ -34,7 +34,7 @@ func setupTestManager(t *testing.T) (*Manager, *database.DB) {
 
 func TestBlock(t *testing.T) {
 	manager, db := setupTestManager(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	entry, err := manager.Block(
 		"spammer",
@@ -69,10 +69,11 @@ func TestBlock(t *testing.T) {
 
 func TestUnblock(t *testing.T) {
 	manager, db := setupTestManager(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Block a user
-	manager.Block("toremove", "test", "https://example.com", "admin", models.SeverityLow, models.SourceManual)
+	//nolint:errcheck
+	_, _ = manager.Block("toremove", "test", "https://example.com", "admin", models.SeverityLow, models.SourceManual)
 
 	// Verify blocked
 	blocked, _ := manager.IsBlocked("toremove")
@@ -95,15 +96,17 @@ func TestUnblock(t *testing.T) {
 
 func TestExportJSON(t *testing.T) {
 	manager, db := setupTestManager(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Create temp directory
 	tmpDir := t.TempDir()
 	exportPath := filepath.Join(tmpDir, "blocklist.json")
 
 	// Add test entries
-	manager.Block("user1", "reason1", "https://example.com/1", "admin", models.SeverityHigh, models.SourceManual)
-	manager.Block("user2", "reason2", "https://example.com/2", "admin", models.SeverityMedium, models.SourceImported)
+	//nolint:errcheck
+	_, _ = manager.Block("user1", "reason1", "https://example.com/1", "admin", models.SeverityHigh, models.SourceManual)
+	//nolint:errcheck
+	_, _ = manager.Block("user2", "reason2", "https://example.com/2", "admin", models.SeverityMedium, models.SourceImported)
 
 	// Export
 	err := manager.ExportJSON(exportPath)
@@ -117,7 +120,7 @@ func TestExportJSON(t *testing.T) {
 	}
 
 	// Read and parse JSON
-	data, err := os.ReadFile(exportPath)
+	data, err := os.ReadFile(exportPath) //nolint:gosec // test file
 	if err != nil {
 		t.Fatalf("Failed to read export file: %v", err)
 	}
@@ -134,13 +137,14 @@ func TestExportJSON(t *testing.T) {
 
 func TestExportCSV(t *testing.T) {
 	manager, db := setupTestManager(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	tmpDir := t.TempDir()
 	exportPath := filepath.Join(tmpDir, "blocklist.csv")
 
 	// Add test entries
-	manager.Block("csvuser1", "test reason", "https://example.com", "admin", models.SeverityLow, models.SourceManual)
+	//nolint:errcheck
+	_, _ = manager.Block("csvuser1", "test reason", "https://example.com", "admin", models.SeverityLow, models.SourceManual)
 
 	// Export
 	err := manager.ExportCSV(exportPath)
@@ -149,7 +153,7 @@ func TestExportCSV(t *testing.T) {
 	}
 
 	// Verify file exists and has content
-	data, err := os.ReadFile(exportPath)
+	data, err := os.ReadFile(exportPath) //nolint:gosec // test file
 	if err != nil {
 		t.Fatalf("Failed to read CSV file: %v", err)
 	}
@@ -172,7 +176,7 @@ func TestExportCSV(t *testing.T) {
 
 func TestImportJSON(t *testing.T) {
 	manager, db := setupTestManager(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	tmpDir := t.TempDir()
 	importPath := filepath.Join(tmpDir, "import.json")
@@ -185,7 +189,8 @@ func TestImportJSON(t *testing.T) {
 
 	// Write JSON file
 	data, _ := json.Marshal(testEntries)
-	os.WriteFile(importPath, data, 0644)
+	_ = os.WriteFile( //nolint:errcheck,gosec // test file
+		importPath, data, 0644)
 
 	// Import
 	count, err := manager.ImportJSON(importPath)
@@ -217,13 +222,14 @@ func TestImportJSON(t *testing.T) {
 
 func TestImportJSON_Deduplication(t *testing.T) {
 	manager, db := setupTestManager(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	tmpDir := t.TempDir()
 
 	// Create an entry with a specific ID
 	originalEntry := models.NewBlocklistEntry("dupuser", "original reason", "https://example.com", "admin", models.SeverityLow, models.SourceManual)
-	db.AddEntry(originalEntry)
+	_ = db.AddEntry( //nolint:errcheck
+		originalEntry)
 
 	// Create import file with same ID but higher severity
 	updatedEntry := &models.BlocklistEntry{
@@ -240,7 +246,8 @@ func TestImportJSON_Deduplication(t *testing.T) {
 
 	importPath := filepath.Join(tmpDir, "dup.json")
 	data, _ := json.Marshal([]*models.BlocklistEntry{updatedEntry})
-	os.WriteFile(importPath, data, 0644)
+	_ = os.WriteFile( //nolint:errcheck,gosec // test file
+		importPath, data, 0644)
 
 	// Import - should update existing entry
 	count, err := manager.ImportJSON(importPath)
@@ -265,13 +272,14 @@ func TestImportJSON_Deduplication(t *testing.T) {
 
 func TestImportJSON_LowerSeverityIgnored(t *testing.T) {
 	manager, db := setupTestManager(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	tmpDir := t.TempDir()
 
 	// Create high severity entry
 	originalEntry := models.NewBlocklistEntry("severityuser", "original", "https://example.com", "admin", models.SeverityHigh, models.SourceManual)
-	db.AddEntry(originalEntry)
+	_ = db.AddEntry( //nolint:errcheck
+		originalEntry)
 
 	// Try to import with lower severity
 	lowerSeverityEntry := &models.BlocklistEntry{
@@ -288,7 +296,8 @@ func TestImportJSON_LowerSeverityIgnored(t *testing.T) {
 
 	importPath := filepath.Join(tmpDir, "lower.json")
 	data, _ := json.Marshal([]*models.BlocklistEntry{lowerSeverityEntry})
-	os.WriteFile(importPath, data, 0644)
+	_ = os.WriteFile( //nolint:errcheck,gosec // test file
+		importPath, data, 0644)
 
 	// Import - should not update
 	count, _ := manager.ImportJSON(importPath)
@@ -307,13 +316,15 @@ func TestImportJSON_LowerSeverityIgnored(t *testing.T) {
 
 func TestGetByUsername(t *testing.T) {
 	manager, db := setupTestManager(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	username := "multientry"
 
 	// Add multiple entries for same user
-	manager.Block(username, "reason1", "https://example.com/1", "admin", models.SeverityLow, models.SourceManual)
-	manager.Block(username, "reason2", "https://example.com/2", "admin", models.SeverityHigh, models.SourceImported)
+	//nolint:errcheck
+	_, _ = manager.Block(username, "reason1", "https://example.com/1", "admin", models.SeverityLow, models.SourceManual)
+	//nolint:errcheck
+	_, _ = manager.Block(username, "reason2", "https://example.com/2", "admin", models.SeverityHigh, models.SourceImported)
 
 	entries, err := manager.GetByUsername(username)
 	if err != nil {
@@ -327,12 +338,15 @@ func TestGetByUsername(t *testing.T) {
 
 func TestList(t *testing.T) {
 	manager, db := setupTestManager(t)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Add multiple users
-	manager.Block("user1", "reason1", "https://example.com/1", "admin", models.SeverityLow, models.SourceManual)
-	manager.Block("user2", "reason2", "https://example.com/2", "admin", models.SeverityMedium, models.SourceManual)
-	manager.Block("user3", "reason3", "https://example.com/3", "admin", models.SeverityHigh, models.SourceManual)
+	//nolint:errcheck
+	_, _ = manager.Block("user1", "reason1", "https://example.com/1", "admin", models.SeverityLow, models.SourceManual)
+	//nolint:errcheck
+	_, _ = manager.Block("user2", "reason2", "https://example.com/2", "admin", models.SeverityMedium, models.SourceManual)
+	//nolint:errcheck
+	_, _ = manager.Block("user3", "reason3", "https://example.com/3", "admin", models.SeverityHigh, models.SourceManual)
 
 	entries, err := manager.List()
 	if err != nil {

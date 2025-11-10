@@ -33,7 +33,7 @@ By default, scan-all only reports findings. Use flags to take action:
   --auto-close: Automatically close spam PRs
   --auto-block: Automatically add spam users to local blocklist
   --github-block: Also block users via GitHub API (requires --auto-block)`,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runScanAll(*configPath, autoClose, autoBlock, githubBlock)
 		},
 	}
@@ -55,7 +55,7 @@ func runScanAll(configPath string, autoClose, autoBlock, githubBlock bool) error
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	if len(cfg.Repositories) == 0 {
 		return fmt.Errorf("no repositories configured. Add repositories to your config.yaml file")

@@ -55,7 +55,7 @@ func TestListCommand_Empty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// List should succeed with empty database
 	err = runList(configPath)
@@ -95,7 +95,7 @@ func TestListCommand_WithEntries(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Add some test entries
 	manager := blocklist.NewManager(db)

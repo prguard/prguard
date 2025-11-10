@@ -151,7 +151,7 @@ func promptRepositories(reader *bufio.Reader) ([]string, error) {
 func writeConfigFile(path, content string) error {
 	// Create directory if needed
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 

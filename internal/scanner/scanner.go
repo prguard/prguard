@@ -91,6 +91,7 @@ func (s *Scanner) ScanPR(pr *github.PullRequest, user *github.User) *ScanResult 
 	}
 
 	// Determine recommended action
+	//nolint:gocritic // if-else is more readable here than switch
 	if result.IsSpam {
 		result.RecommendAction = "Block user and close PR"
 	} else if result.IsUncertain {
@@ -194,6 +195,7 @@ func (s *Scanner) ScanRepository(ghClient github.GitHubClient, owner, repo strin
 
 		scanResult := s.ScanPR(pr, user)
 
+		//nolint:gocritic // if-else is more readable here than switch
 		if scanResult.IsSpam {
 			results.Spam = append(results.Spam, scanResult)
 		} else if scanResult.IsUncertain {

@@ -38,7 +38,7 @@ By default, scan only reports findings. Use flags to take action:
   --auto-block: Automatically add spam users to local blocklist
   --github-block: Also block users via GitHub API (requires --auto-block)`,
 		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return runScan(*configPath, args[0], autoClose, autoBlock, githubBlock)
 		},
 	}
@@ -61,7 +61,7 @@ func runScan(configPath, repo string, autoClose, autoBlock, githubBlock bool) er
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Apply config defaults to flags
 	autoClose, autoBlock = applyConfigDefaults(cfg, autoClose, autoBlock)

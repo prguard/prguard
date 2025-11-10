@@ -58,7 +58,7 @@ func TestImportCommand_FromFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Create import file with test data
 	testEntries := []models.BlocklistEntry{
@@ -87,7 +87,7 @@ func TestImportCommand_FromFile(t *testing.T) {
 		t.Fatalf("failed to marshal test data: %v", err)
 	}
 
-	if err := os.WriteFile(importPath, data, 0644); err != nil {
+	if err := os.WriteFile(importPath, data, 0644); err != nil { //nolint:gosec // test file
 		t.Fatalf("failed to write import file: %v", err)
 	}
 
@@ -153,7 +153,7 @@ func TestImportCommand_Deduplication(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Add an existing entry
 	manager := blocklist.NewManager(db)
@@ -182,7 +182,7 @@ func TestImportCommand_Deduplication(t *testing.T) {
 		t.Fatalf("failed to marshal test data: %v", err)
 	}
 
-	if err := os.WriteFile(importPath, data, 0644); err != nil {
+	if err := os.WriteFile(importPath, data, 0644); err != nil { //nolint:gosec // test file
 		t.Fatalf("failed to write import file: %v", err)
 	}
 
@@ -258,7 +258,7 @@ func TestImportCommand_NonexistentFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Try to import from nonexistent file
 	err = runImport(configPath, "/nonexistent/file.json", "")
@@ -299,10 +299,10 @@ func TestImportCommand_InvalidJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Create invalid JSON file
-	if err := os.WriteFile(importPath, []byte("not valid json"), 0644); err != nil {
+	if err := os.WriteFile(importPath, []byte("not valid json"), 0644); err != nil { //nolint:gosec // test file
 		t.Fatalf("failed to write invalid JSON: %v", err)
 	}
 
@@ -345,10 +345,10 @@ func TestImportCommand_EmptyFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Create empty JSON array
-	if err := os.WriteFile(importPath, []byte("[]"), 0644); err != nil {
+	if err := os.WriteFile(importPath, []byte("[]"), 0644); err != nil { //nolint:gosec // test file
 		t.Fatalf("failed to write empty JSON: %v", err)
 	}
 

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package database provides SQLite and Turso database connectivity and operations.
 package database
 
 import (
@@ -21,9 +22,9 @@ import (
 	"os"
 	"path/filepath"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // SQLite driver
 	"github.com/prguard/prguard/pkg/models"
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	_ "github.com/tursodatabase/libsql-client-go/libsql" // Turso/libSQL driver
 )
 
 //go:embed migrations/001_initial_schema.up.sql
@@ -43,7 +44,7 @@ func NewSQLiteDB(path string) (*DB, error) {
 	// Ensure the directory exists (skip for in-memory databases)
 	if path != ":memory:" {
 		dir := filepath.Dir(path)
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0750); err != nil {
 			return nil, fmt.Errorf("failed to create database directory: %w", err)
 		}
 	}
@@ -187,7 +188,7 @@ func (db *DB) GetEntriesByUsername(username string) ([]*models.BlocklistEntry, e
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	var entries []*models.BlocklistEntry
 	for rows.Next() {
@@ -219,7 +220,7 @@ func (db *DB) ListEntries() ([]*models.BlocklistEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	var entries []*models.BlocklistEntry
 	for rows.Next() {

@@ -37,7 +37,7 @@ func NewBlockCommand(configPath *string) *cobra.Command {
 Optionally blocks them via GitHub API using --github-block flag.
 Note: GitHub blocking works at organization or personal account level, not per-repository.`,
 		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return runBlock(*configPath, args[0], reason, evidenceURL, severity, githubBlock)
 		},
 	}
@@ -46,8 +46,8 @@ Note: GitHub blocking works at organization or personal account level, not per-r
 	cmd.Flags().StringVarP(&evidenceURL, "evidence", "e", "", "URL to evidence (PR/issue link, required)")
 	cmd.Flags().StringVarP(&severity, "severity", "s", "medium", "Severity level (low/medium/high)")
 	cmd.Flags().BoolVar(&githubBlock, "github-block", false, "Also block user via GitHub API (affects ALL repos in org/account)")
-	cmd.MarkFlagRequired("reason")
-	cmd.MarkFlagRequired("evidence")
+	_ = cmd.MarkFlagRequired("reason")
+	_ = cmd.MarkFlagRequired("evidence")
 
 	return cmd
 }
@@ -57,7 +57,7 @@ func runBlock(configPath, username, reason, evidenceURL, severity string, github
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	// Validate severity
 	if severity != models.SeverityLow && severity != models.SeverityMedium && severity != models.SeverityHigh {
@@ -85,7 +85,8 @@ func runBlock(configPath, username, reason, evidenceURL, severity string, github
 	// GitHub API blocking (optional)
 	if githubBlock {
 		fmt.Println()
-		if cfg.GitHub.Org != "" {
+		switch {
+		case cfg.GitHub.Org != "":
 			// Organization-level blocking
 			fmt.Printf("⚠️  WARNING: This will block %s from ALL repositories in the '%s' organization.\n", username, cfg.GitHub.Org)
 			fmt.Print("Continue? (y/N): ")
@@ -105,7 +106,7 @@ func runBlock(configPath, username, reason, evidenceURL, severity string, github
 			fmt.Printf("✓ User %s blocked at organization level via GitHub API\n", username)
 			fmt.Printf("  Scope: ALL repositories in '%s' organization\n", cfg.GitHub.Org)
 			fmt.Println("  Required permission: admin:org")
-		} else if cfg.GitHub.User != "" {
+		case cfg.GitHub.User != "":
 			// Personal account-level blocking
 			fmt.Printf("⚠️  WARNING: This will block %s from ALL repositories owned by your personal account (%s).\n", username, cfg.GitHub.User)
 			fmt.Print("Continue? (y/N): ")
@@ -125,7 +126,7 @@ func runBlock(configPath, username, reason, evidenceURL, severity string, github
 			fmt.Printf("✓ User %s blocked at personal account level via GitHub API\n", username)
 			fmt.Printf("  Scope: ALL repositories owned by '%s'\n", cfg.GitHub.User)
 			fmt.Println("  Required permission: user")
-		} else {
+		default:
 			return fmt.Errorf("cannot use --github-block: neither github.org nor github.user is configured")
 		}
 	} else {
