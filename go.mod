@@ -1,6 +1,6 @@
 module github.com/prguard/prguard
 
-go 1.25.3
+go 1.25
 
 require (
 	github.com/google/go-github/v57 v57.0.0
